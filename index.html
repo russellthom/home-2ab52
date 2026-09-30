@@ -55,6 +55,10 @@ button.on { background: var(--on); }
 button.off { background: var(--off); color: #fff; }
 button.open { background: var(--open); color: #fff; }
 button.close { background: #7b879e; color: #fff; }
+button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px; font-size: 0.82rem; }
+.row.speeds { gap: 6px; flex-wrap: nowrap; }
+.grid > * { min-width: 0; }
+#ceiling-fans { grid-template-columns: 1fr; }
 #setup { display: none; background: var(--card2); border: 1px solid var(--line); border-radius: 16px;
   padding: 14px; margin-bottom: 14px; }
 #setup.show { display: block; }
@@ -224,6 +228,16 @@ function fanCard(f) {
   c.appendChild(row(
     btn("On", "on", f.fanOn, f.label + " on"),
     btn("Off", "off", f.fanOff, f.label + " off")));
+  if (Array.isArray(f.speeds) && f.speeds.length && f.speedCommand) {
+    const sl = document.createElement("div");
+    sl.className = "rowlabel";
+    sl.textContent = "Fan speed";
+    c.appendChild(sl);
+    const sr = row(...f.speeds.map((n) =>
+      btn(n + "%", "speed", f.speedCommand.replace("{N}", n), f.label + " speed " + n + "%")));
+    sr.classList.add("speeds");
+    c.appendChild(sr);
+  }
   return c;
 }
 // Fan's light (lights only), shown under Lights.
@@ -301,7 +315,7 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=4").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=5").catch(() => {});
 }
 </script>
 </body>

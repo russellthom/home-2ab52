@@ -107,7 +107,14 @@
       "lightDevice": "Ceiling Light Live",
       "lightOn": "turn on Living Room ceiling light (Ceiling Light Live)",
       "lightOff": "turn off Living Room ceiling light (Ceiling Light Live)",
-      "lightLabel": "Living Room ceiling fan light"
+      "lightLabel": "Living Room ceiling fan light",
+      "speeds": [
+        25,
+        50,
+        75,
+        100
+      ],
+      "speedCommand": "set Living Room ceiling fan speed {N}% (Ceiling Fan Liv)"
     },
     {
       "id": "bedroom-ceiling-fan",
@@ -118,7 +125,14 @@
       "lightDevice": "Ceiling Light",
       "lightOn": "turn on Bedroom ceiling light (Ceiling Light)",
       "lightOff": "turn off Bedroom ceiling light (Ceiling Light)",
-      "lightLabel": "Bedroom ceiling fan light"
+      "lightLabel": "Bedroom ceiling fan light",
+      "speeds": [
+        25,
+        50,
+        75,
+        100
+      ],
+      "speedCommand": "set Bedroom ceiling fan speed {N}% (Ceiling Fan)"
     }
   ],
   "floors": [
