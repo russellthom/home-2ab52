@@ -1,0 +1,136 @@
+{
+ "quick": [
+  {
+   "id": "all-lights",
+   "label": "All lights",
+   "target": "all lights"
+  },
+  {
+   "id": "upstairs-lights",
+   "label": "Upstairs",
+   "target": "upstairs lights"
+  },
+  {
+   "id": "downstairs-lights",
+   "label": "Downstairs",
+   "target": "downstairs lights"
+  },
+  {
+   "id": "outside-lights",
+   "label": "Outside",
+   "target": "outside lights"
+  },
+  {
+   "id": "bedroom-lights",
+   "label": "Bedroom lights",
+   "target": "bedroom lights"
+  },
+  {
+   "id": "office-lights",
+   "label": "Office lights",
+   "target": "office lights"
+  }
+ ],
+ "floors": [
+  {
+   "id": "downstairs",
+   "label": "Downstairs",
+   "rooms": [
+    {
+     "id": "bedroom",
+     "label": "Bedroom",
+     "lights": true,
+     "blinds": true,
+     "blindMode": "open_close"
+    },
+    {
+     "id": "living-room",
+     "label": "Living Room",
+     "lights": true,
+     "blinds": true,
+     "blindMode": "scenes",
+     "blindOpen": "Open Living Blinds",
+     "blindClose": "Close Living Blinds"
+    },
+    {
+     "id": "kitchen",
+     "label": "Kitchen",
+     "lights": true,
+     "blinds": false
+    },
+    {
+     "id": "sitting",
+     "label": "Sitting",
+     "lights": true,
+     "blinds": true,
+     "blindMode": "open_close"
+    },
+    {
+     "id": "other-downstairs",
+     "label": "Other downstairs",
+     "lights": true,
+     "blinds": false,
+     "targetLights": "Other downstairs"
+    }
+   ]
+  },
+  {
+   "id": "upstairs",
+   "label": "Upstairs",
+   "rooms": [
+    {
+     "id": "bonus-room",
+     "label": "Bonus Room",
+     "lights": true,
+     "blinds": true,
+     "blindMode": "open_close"
+    },
+    {
+     "id": "office",
+     "label": "Office",
+     "lights": true,
+     "blinds": true,
+     "blindMode": "open_close",
+     "blindCloseCommand": "close Office blinds up",
+     "blindOpenCommand": "open Office blinds"
+    },
+    {
+     "id": "guest-bedroom",
+     "label": "Guest Bedroom",
+     "lights": true,
+     "blinds": false
+    }
+   ]
+  },
+  {
+   "id": "outside",
+   "label": "Outside",
+   "rooms": [
+    {
+     "id": "back-porch",
+     "label": "Back porch",
+     "lights": true,
+     "blinds": false
+    },
+    {
+     "id": "eve-lights",
+     "label": "Eve lights",
+     "lights": true,
+     "blinds": false
+    },
+    {
+     "id": "outside-deck",
+     "label": "Outside / Deck",
+     "lights": true,
+     "blinds": false
+    },
+    {
+     "id": "spot-lights",
+     "label": "Spot lights",
+     "lights": true,
+     "blinds": false
+    }
+   ]
+  }
+ ]
+}
