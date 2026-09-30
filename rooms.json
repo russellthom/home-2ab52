@@ -144,23 +144,23 @@
       "off": "turn off Office heater (Office Heater)",
       "setpoints": [
         {
-          "f": 64,
-          "c": 18
-        },
-        {
+          "name": "Low",
           "f": 68,
           "c": 20
         },
         {
-          "f": 72,
-          "c": 22
+          "name": "Medium",
+          "f": 77,
+          "c": 25
         },
         {
-          "f": 75,
-          "c": 24
+          "name": "High",
+          "f": 86,
+          "c": 30
         }
       ],
-      "setpointCommand": "set Office heater temperature {F}°F ({C}°C) (Office Heater)"
+      "setpointCommand": "set Office heater temperature {N} {F}°F ({C}°C) (Office Heater)",
+      "setpointLabel": "Office heater {N}"
     }
   ],
   "floors": [

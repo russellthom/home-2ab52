@@ -83,7 +83,8 @@ button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px
 .row.speeds { gap: 6px; flex-wrap: nowrap; }
 .grid > * { min-width: 0; }
 #ceiling-fans, #heaters { grid-template-columns: 1fr; }
-button.heat { background: #ff8a3d; color: #fff; min-width: 0; padding: 10px 4px; font-size: 0.82rem; }
+button.heat { background: #ff8a3d; color: #fff; min-width: 0; padding: 8px 4px; font-size: 0.86rem; }
+.btn-sub { display: block; font-size: 0.68rem; font-weight: 500; opacity: 0.85; margin-top: 1px; }
 #setup { display: none; background: var(--card2); border: 1px solid var(--line); border-radius: 16px;
   padding: 14px; margin-bottom: 14px; }
 #setup.show { display: block; }
@@ -412,8 +413,18 @@ function heaterCard(h) {
     l.className = "rowlabel";
     l.textContent = "Set temperature";
     c.appendChild(l);
-    const r = row(...h.setpoints.map((sp) =>
-      btn(sp.f + "°", "heat", h.setpointCommand.replace("{F}", sp.f).replace("{C}", sp.c), h.label + " " + sp.f + "°F")));
+    const fill = (t, sp) => t.split("{N}").join(sp.name || "").split("{F}").join(sp.f).split("{C}").join(sp.c);
+    const r = row(...h.setpoints.map((sp) => {
+      const b = btn(sp.name || sp.f + "°", "heat", fill(h.setpointCommand, sp),
+        h.setpointLabel ? fill(h.setpointLabel, sp) : h.label + " " + sp.f + "°F");
+      if (sp.name) {
+        const sub = document.createElement("small");
+        sub.className = "btn-sub";
+        sub.textContent = sp.f + "°F";
+        b.querySelector(".btn-label").appendChild(sub);
+      }
+      return b;
+    }));
     r.classList.add("speeds");
     c.appendChild(r);
   }
@@ -508,7 +519,7 @@ document.querySelectorAll("#gearBtn, #saveBtn, #testBtn").forEach((el) => addPre
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=9").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=10").catch(() => {});
 }
 </script>
 </body>
