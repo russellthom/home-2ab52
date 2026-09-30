@@ -63,11 +63,13 @@ button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px
   padding: 14px; margin-bottom: 14px; }
 #setup.show { display: block; }
 #setup label { display: block; font-size: 0.8rem; color: var(--muted); margin: 8px 0 4px; }
-#setup input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
+#setup input, #setup select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--bg); color: var(--text); font-size: 1rem; }
 #setup .hint { font-size: 0.78rem; color: var(--muted); margin-top: 8px; line-height: 1.35; }
 #setup .save { margin-top: 12px; width: 100%; background: var(--accent); color: #fff;
   border: 0; border-radius: 12px; padding: 12px; font-weight: 600; }
+#setup .save.test { background: #2c3a57; }
+#setup code { font-size: 0.75rem; }
 .banner { background: #2a1f0a; border: 1px solid #5a4318; color: #f0d9a0; border-radius: 12px;
   padding: 10px 12px; font-size: 0.85rem; margin-bottom: 12px; display: none; }
 .banner.show { display: block; }
@@ -78,36 +80,67 @@ button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px
   <h1>Home</h1>
   <button class="gear" id="gearBtn" type="button" aria-label="Settings">⚙</button>
 </header>
-<div class="banner" id="setupBanner">Paste your webhook URL and key in settings (once), then Share → Add to Home Screen.</div>
+<div class="banner" id="setupBanner">Open settings (⚙) once: pick how to send (iOS Shortcut recommended), then Share → Add to Home Screen.</div>
 <p class="status" id="status"></p>
 <div id="setup">
   <strong>Webhook</strong>
-  <label for="webhookUrl">URL</label>
-  <input id="webhookUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://…" />
-  <label for="webhookKey">Key</label>
-  <input id="webhookKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste key" />
+  <label for="sendMode">Send via</label>
+  <select id="sendMode">
+    <option value="shortcut">iOS Shortcut (recommended)</option>
+    <option value="direct">Direct from browser</option>
+  </select>
+  <div id="shortcutFields">
+    <label for="shortcutName">Shortcut name</label>
+    <input id="shortcutName" type="text" autocomplete="off" spellcheck="false" placeholder="Home Command" />
+    <p class="hint">One-time: in the Shortcuts app make a shortcut with this exact name: <b>Receive Text input</b> → <b>Get Contents of URL</b> = your webhook URL, Method <b>POST</b>, Headers <b>Authorization</b> = <code>Bearer &lt;key&gt;</code> and <b>Content-Type</b> = <code>application/json</code>, Request Body <b>File</b> = <b>Shortcut Input</b>. The key stays in the Shortcut; this page only passes the command.</p>
+  </div>
+  <div id="directFields">
+    <label for="webhookUrl">URL</label>
+    <input id="webhookUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://…" />
+    <label for="webhookKey">Key</label>
+    <input id="webhookKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste key" />
+    <p class="hint">Direct mode only works if the webhook allows this site's origin (CORS). Grok Bot / Cursor webhooks currently don't, so browsers show “Load failed” — use iOS Shortcut mode.</p>
+  </div>
   <button class="save" id="saveBtn" type="button">Save</button>
+  <button class="save test" id="testBtn" type="button">Test connection</button>
+  <p class="hint" id="testResult"></p>
   <p class="hint">CEO → Home dashboard webhook routine → copy Webhook URL and key. This panel sends lights / shades / blinds / curtains commands, plus manual per-fan ceiling fan buttons.</p>
 </div>
 <div id="app"></div>
 <script>
 const LS_URL = "homeDash.webhookUrl";
 const LS_KEY = "homeDash.webhookKey";
+const LS_MODE = "homeDash.sendMode";
+const LS_SHORTCUT = "homeDash.shortcutName";
+const DEFAULT_SHORTCUT = "Home Command";
 const statusEl = document.getElementById("status");
 const setupEl = document.getElementById("setup");
 const banner = document.getElementById("setupBanner");
+const testEl = document.getElementById("testResult");
 
 function cfg() {
-  return {
-    url: localStorage.getItem(LS_URL) || "",
-    key: localStorage.getItem(LS_KEY) || "",
-  };
+  const url = localStorage.getItem(LS_URL) || "";
+  const key = localStorage.getItem(LS_KEY) || "";
+  // Existing installs with a saved URL keep direct mode until changed; new installs default to Shortcut.
+  const mode = localStorage.getItem(LS_MODE) || (url ? "direct" : "shortcut");
+  return { url, key, mode, shortcut: localStorage.getItem(LS_SHORTCUT) || DEFAULT_SHORTCUT };
+}
+function configured(c) {
+  return c.mode === "shortcut" ? !!c.shortcut : !!(c.url && c.key);
+}
+function showModeFields() {
+  const m = document.getElementById("sendMode").value;
+  document.getElementById("shortcutFields").style.display = m === "shortcut" ? "" : "none";
+  document.getElementById("directFields").style.display = m === "direct" ? "" : "none";
 }
 function refreshSetupUi() {
   const c = cfg();
   document.getElementById("webhookUrl").value = c.url;
   document.getElementById("webhookKey").value = c.key;
-  const missing = !c.url || !c.key;
+  document.getElementById("sendMode").value = c.mode;
+  document.getElementById("shortcutName").value = c.shortcut;
+  showModeFields();
+  const missing = !configured(c) || !localStorage.getItem(LS_MODE) && !c.url;
   banner.classList.toggle("show", missing);
   if (missing) setupEl.classList.add("show");
 }
@@ -116,31 +149,82 @@ function setStatus(msg, kind) {
   statusEl.className = "status" + (kind ? " " + kind : "");
 }
 
-async function send(command, label) {
-  const c = cfg();
-  if (!c.url || !c.key) {
-    setupEl.classList.add("show");
-    setStatus("Add webhook URL and key in settings first.", "err");
-    return;
-  }
+// Checks the saved URL looks like a webhook URL. Returns an error string or "".
+function urlProblem(u) {
+  if (!u) return "No webhook URL saved.";
+  let x;
+  try { x = new URL(u); } catch (e) { return "URL isn't valid — paste the full URL including https://"; }
+  if (x.protocol !== "https:") return "URL must start with https://";
+  if (x.pathname === "/" || x.pathname === "") return "URL is missing its path — re-copy the whole Webhook URL.";
+  return "";
+}
+
+function sendViaShortcut(c, command, label) {
+  const payload = JSON.stringify({ command, label: label || command });
+  const link = "shortcuts://run-shortcut?name=" + encodeURIComponent(c.shortcut) +
+    "&input=text&text=" + encodeURIComponent(payload);
+  setStatus((label || command) + " → Shortcut “" + c.shortcut + "”", "ok");
+  window.location.href = link;
+}
+
+async function sendDirect(c, command, label) {
+  const bad = urlProblem(c.url);
+  if (bad) { setStatus("Can't send: " + bad, "err"); return; }
   setStatus((label || command) + "…", "busy");
   const rawKey = c.key.replace(/^Bearer\s+/i, "").trim();
-  const headers = {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer " + rawKey,
-    "X-Webhook-Key": rawKey,
-  };
+  let res;
   try {
-    const res = await fetch(c.url, {
+    res = await fetch(c.url, {
       method: "POST",
-      headers,
+      // Only the documented auth header (Authorization: Bearer <key>).
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + rawKey },
       body: JSON.stringify({ command, label: label || command }),
       mode: "cors",
     });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    setStatus((label || command) + " sent", "ok");
   } catch (e) {
-    setStatus("Failed: " + (e && e.message ? e.message : e), "err");
+    setStatus("Can't reach webhook from the browser (network or CORS blocked). " +
+      "Switch Send via → iOS Shortcut in settings, or check the URL.", "err");
+    return;
+  }
+  if (res.ok) { setStatus((label || command) + " sent", "ok"); return; }
+  let detail = "";
+  try { const j = await res.json(); detail = j && j.message ? " — " + j.message : ""; } catch (e) {}
+  if (res.status === 401 || res.status === 403) setStatus("Webhook rejected the key (HTTP " + res.status + ")" + detail + ". Re-copy the key.", "err");
+  else if (res.status === 404) setStatus("Webhook URL not found (HTTP 404)" + detail + ". Re-copy the URL.", "err");
+  else setStatus("Webhook error HTTP " + res.status + detail, "err");
+}
+
+async function send(command, label) {
+  const c = cfg();
+  if (!configured(c)) {
+    setupEl.classList.add("show");
+    setStatus("Open settings (⚙) and finish setup first.", "err");
+    return;
+  }
+  if (c.mode === "shortcut") return sendViaShortcut(c, command, label);
+  return sendDirect(c, command, label);
+}
+
+// Test without firing the routine: never sends the key.
+async function testConnection() {
+  const m = document.getElementById("sendMode").value;
+  if (m === "shortcut") {
+    const name = document.getElementById("shortcutName").value.trim() || DEFAULT_SHORTCUT;
+    testEl.textContent = "Shortcut mode: buttons open the “" + name + "” shortcut. If iOS says it can't find it, create it (steps above) with that exact name.";
+    return;
+  }
+  const u = document.getElementById("webhookUrl").value.trim();
+  const bad = urlProblem(u);
+  if (bad) { testEl.textContent = "✗ " + bad; return; }
+  testEl.textContent = "Testing…";
+  let reachable = false;
+  try { await fetch(u, { method: "POST", mode: "no-cors", body: "{}" }); reachable = true; } catch (e) {}
+  if (!reachable) { testEl.textContent = "✗ Can't reach " + new URL(u).host + " — check the URL / internet connection."; return; }
+  try {
+    const r = await fetch(u, { method: "POST", mode: "cors", headers: { "Content-Type": "application/json" }, body: "{}" });
+    testEl.textContent = "✓ Host reachable and allows this site (HTTP " + r.status + " without key, as expected). Direct mode should work.";
+  } catch (e) {
+    testEl.textContent = "✗ Host is reachable, but it blocks browser requests from this site (CORS). Direct mode can't work here — use Send via → iOS Shortcut.";
   }
 }
 
@@ -309,13 +393,17 @@ document.getElementById("gearBtn").addEventListener("click", () => {
 document.getElementById("saveBtn").addEventListener("click", () => {
   localStorage.setItem(LS_URL, document.getElementById("webhookUrl").value.trim());
   localStorage.setItem(LS_KEY, document.getElementById("webhookKey").value.trim());
+  localStorage.setItem(LS_MODE, document.getElementById("sendMode").value);
+  localStorage.setItem(LS_SHORTCUT, document.getElementById("shortcutName").value.trim() || DEFAULT_SHORTCUT);
   refreshSetupUi();
   setStatus("Saved on this device.", "ok");
 });
+document.getElementById("sendMode").addEventListener("change", showModeFields);
+document.getElementById("testBtn").addEventListener("click", () => { testConnection(); });
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=5").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=6").catch(() => {});
 }
 </script>
 </body>

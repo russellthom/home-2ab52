@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever app files change so installed phones pick up the update.
-const CACHE_VERSION = 'home-dash-v5-2026-09-30-fan-speeds';
+const CACHE_VERSION = 'home-dash-v6-2026-09-30-shortcut-send';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(
