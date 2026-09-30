@@ -82,7 +82,8 @@ button.close { background: #7b879e; color: #fff; }
 button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px; font-size: 0.82rem; }
 .row.speeds { gap: 6px; flex-wrap: nowrap; }
 .grid > * { min-width: 0; }
-#ceiling-fans { grid-template-columns: 1fr; }
+#ceiling-fans, #heaters { grid-template-columns: 1fr; }
+button.heat { background: #ff8a3d; color: #fff; min-width: 0; padding: 10px 4px; font-size: 0.82rem; }
 #setup { display: none; background: var(--card2); border: 1px solid var(--line); border-radius: 16px;
   padding: 14px; margin-bottom: 14px; }
 #setup.show { display: block; }
@@ -128,7 +129,7 @@ button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px
   <button class="save" id="saveBtn" type="button">Save</button>
   <button class="save test" id="testBtn" type="button">Test connection</button>
   <p class="hint" id="testResult"></p>
-  <p class="hint">CEO → Home dashboard webhook routine → copy Webhook URL and key. This panel sends lights / shades / blinds / curtains commands, plus manual per-fan ceiling fan buttons.</p>
+  <p class="hint">CEO → Home dashboard webhook routine → copy Webhook URL and key. This panel sends lights / shades / blinds / curtains commands, plus manual per-fan ceiling fan and Office heater buttons.</p>
 </div>
 <div id="app"></div>
 <script>
@@ -400,6 +401,25 @@ function fanCard(f) {
   }
   return c;
 }
+// HEATER: MANUAL, single device. Never in any group / room / all / scene / automation.
+function heaterCard(h) {
+  const c = card(h.label, "Heater only · " + h.device, "MANUAL");
+  c.appendChild(row(
+    btn("On", "on", h.on, h.label + " on"),
+    btn("Off", "off", h.off, h.label + " off")));
+  if (Array.isArray(h.setpoints) && h.setpoints.length && h.setpointCommand) {
+    const l = document.createElement("div");
+    l.className = "rowlabel";
+    l.textContent = "Set temperature";
+    c.appendChild(l);
+    const r = row(...h.setpoints.map((sp) =>
+      btn(sp.f + "°", "heat", h.setpointCommand.replace("{F}", sp.f).replace("{C}", sp.c), h.label + " " + sp.f + "°F")));
+    r.classList.add("speeds");
+    c.appendChild(r);
+  }
+  return c;
+}
+
 // Fan's light (lights only), shown under Lights.
 function fanLightCard(f) {
   const c = card(f.lightLabel || (f.label + " light"), "Light only · " + f.lightDevice);
@@ -455,6 +475,14 @@ async function render() {
     for (const c of curtains) g.appendChild(coverCard(c));
   }
 
+  // ---- Heater ----
+  const heaters = Array.isArray(data.heaters) ? data.heaters : [];
+  if (heaters.length) {
+    section(app, "🔥 Heater", "heater");
+    const g = grid(app, "heaters");
+    for (const h of heaters) g.appendChild(heaterCard(h));
+  }
+
   // ---- Fans ----
   if (fans.length) {
     section(app, "🌀 Fans", "fans");
@@ -480,7 +508,7 @@ document.querySelectorAll("#gearBtn, #saveBtn, #testBtn").forEach((el) => addPre
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=8").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=9").catch(() => {});
 }
 </script>
 </body>

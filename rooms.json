@@ -135,6 +135,34 @@
       "speedCommand": "set Bedroom ceiling fan speed {N}% (Ceiling Fan)"
     }
   ],
+  "heaters": [
+    {
+      "id": "office-heater",
+      "label": "Office heater",
+      "device": "Office Heater",
+      "on": "turn on Office heater (Office Heater)",
+      "off": "turn off Office heater (Office Heater)",
+      "setpoints": [
+        {
+          "f": 64,
+          "c": 18
+        },
+        {
+          "f": 68,
+          "c": 20
+        },
+        {
+          "f": 72,
+          "c": 22
+        },
+        {
+          "f": 75,
+          "c": 24
+        }
+      ],
+      "setpointCommand": "set Office heater temperature {F}°F ({C}°C) (Office Heater)"
+    }
+  ],
   "floors": [
     {
       "id": "downstairs",
