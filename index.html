@@ -40,6 +40,7 @@ h1 { font-size: 1.35rem; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
 .card h2 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; }
+.card .sub { margin: -6px 0 10px; font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 button.action {
   flex: 1; min-width: 64px; border: 0; border-radius: 12px; padding: 12px 8px;
@@ -172,6 +173,29 @@ function roomCard(room) {
   return card;
 }
 
+// Blinds & Curtains groups: open/close only (never on/off), target = room-map alias.
+function coverCard(g) {
+  const card = document.createElement("div");
+  card.className = "card";
+  const h = document.createElement("h2");
+  h.textContent = g.label;
+  card.appendChild(h);
+  if (g.devices) {
+    const sub = document.createElement("div");
+    sub.className = "sub";
+    sub.textContent = g.devices;
+    card.appendChild(sub);
+  }
+  const row = document.createElement("div");
+  row.className = "row";
+  const openCmd = g.openCommand || ("open " + g.target);
+  const closeCmd = g.closeCommand || ("close " + g.target);
+  row.appendChild(btn("Open", "open", openCmd, g.label + " open"));
+  row.appendChild(btn("Close", "close", closeCmd, g.label + " close"));
+  card.appendChild(row);
+  return card;
+}
+
 async function render() {
   const data = await fetch("rooms.json", { cache: "no-store" }).then((r) => r.json());
   const app = document.getElementById("app");
@@ -198,6 +222,18 @@ async function render() {
   }
   app.appendChild(qgrid);
 
+  if (Array.isArray(data.covers) && data.covers.length) {
+    const cs = document.createElement("div");
+    cs.className = "section";
+    cs.textContent = "Blinds & Curtains";
+    app.appendChild(cs);
+    const cgrid = document.createElement("div");
+    cgrid.className = "grid";
+    cgrid.id = "covers";
+    for (const g of data.covers) cgrid.appendChild(coverCard(g));
+    app.appendChild(cgrid);
+  }
+
   for (const floor of data.floors) {
     const s = document.createElement("div");
     s.className = "section";
@@ -222,7 +258,7 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=2").catch(() => {});
 }
 </script>
 </body>

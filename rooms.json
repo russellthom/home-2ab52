@@ -1,136 +1,193 @@
 {
- "quick": [
-  {
-   "id": "all-lights",
-   "label": "All lights",
-   "target": "all lights"
-  },
-  {
-   "id": "upstairs-lights",
-   "label": "Upstairs",
-   "target": "upstairs lights"
-  },
-  {
-   "id": "downstairs-lights",
-   "label": "Downstairs",
-   "target": "downstairs lights"
-  },
-  {
-   "id": "outside-lights",
-   "label": "Outside",
-   "target": "outside lights"
-  },
-  {
-   "id": "bedroom-lights",
-   "label": "Bedroom lights",
-   "target": "bedroom lights"
-  },
-  {
-   "id": "office-lights",
-   "label": "Office lights",
-   "target": "office lights"
-  }
- ],
- "floors": [
-  {
-   "id": "downstairs",
-   "label": "Downstairs",
-   "rooms": [
+  "quick": [
     {
-     "id": "bedroom",
-     "label": "Bedroom",
-     "lights": true,
-     "blinds": true,
-     "blindMode": "open_close"
+      "id": "all-lights",
+      "label": "All lights",
+      "target": "all lights"
     },
     {
-     "id": "living-room",
-     "label": "Living Room",
-     "lights": true,
-     "blinds": true,
-     "blindMode": "scenes",
-     "blindOpen": "Open Living Blinds",
-     "blindClose": "Close Living Blinds"
+      "id": "upstairs-lights",
+      "label": "Upstairs",
+      "target": "upstairs lights"
     },
     {
-     "id": "kitchen",
-     "label": "Kitchen",
-     "lights": true,
-     "blinds": false
+      "id": "downstairs-lights",
+      "label": "Downstairs",
+      "target": "downstairs lights"
     },
     {
-     "id": "sitting",
-     "label": "Sitting",
-     "lights": true,
-     "blinds": true,
-     "blindMode": "open_close"
+      "id": "outside-lights",
+      "label": "Outside",
+      "target": "outside lights"
     },
     {
-     "id": "other-downstairs",
-     "label": "Other downstairs",
-     "lights": true,
-     "blinds": false,
-     "targetLights": "Other downstairs"
+      "id": "bedroom-lights",
+      "label": "Bedroom lights",
+      "target": "bedroom lights"
+    },
+    {
+      "id": "office-lights",
+      "label": "Office lights",
+      "target": "office lights"
     }
-   ]
-  },
-  {
-   "id": "upstairs",
-   "label": "Upstairs",
-   "rooms": [
+  ],
+  "covers": [
     {
-     "id": "bonus-room",
-     "label": "Bonus Room",
-     "lights": true,
-     "blinds": true,
-     "blindMode": "open_close"
+      "id": "all-covers",
+      "label": "All blinds & curtains",
+      "target": "all blinds and curtains",
+      "devices": "Every blind + curtain (Office closes up)"
     },
     {
-     "id": "office",
-     "label": "Office",
-     "lights": true,
-     "blinds": true,
-     "blindMode": "open_close",
-     "blindCloseCommand": "close Office blinds up",
-     "blindOpenCommand": "open Office blinds"
+      "id": "all-blinds",
+      "label": "All blinds",
+      "target": "all blinds",
+      "devices": "All blinds, no curtains (Office closes up)"
     },
     {
-     "id": "guest-bedroom",
-     "label": "Guest Bedroom",
-     "lights": true,
-     "blinds": false
+      "id": "upstairs-blinds",
+      "label": "Upstairs blinds",
+      "target": "upstairs blinds",
+      "devices": "Desk, Couch, Office (Office closes up)"
+    },
+    {
+      "id": "downstairs-blinds",
+      "label": "Downstairs blinds",
+      "target": "downstairs blinds",
+      "devices": "Bedroom ×4 + Living Room"
+    },
+    {
+      "id": "bedroom-blinds",
+      "label": "Bedroom blinds",
+      "target": "bedroom blinds",
+      "devices": "Left, Right, 3, 4"
+    },
+    {
+      "id": "living-room-blinds",
+      "label": "Living Room blinds",
+      "target": "living room blinds",
+      "devices": "Tuya scene (3 blinds)"
+    },
+    {
+      "id": "sitting-room-curtains",
+      "label": "Sitting Room curtains",
+      "target": "sitting room curtains",
+      "devices": "Front Curtains + Curtain AA"
+    },
+    {
+      "id": "bonus-room-blinds",
+      "label": "Bonus Room blinds",
+      "target": "bonus room blinds",
+      "devices": "Desk + Couch"
+    },
+    {
+      "id": "office-blinds",
+      "label": "Office blinds",
+      "target": "office blinds",
+      "closeCommand": "close Office blinds up",
+      "devices": "Office (closes up)"
     }
-   ]
-  },
-  {
-   "id": "outside",
-   "label": "Outside",
-   "rooms": [
+  ],
+  "floors": [
     {
-     "id": "back-porch",
-     "label": "Back porch",
-     "lights": true,
-     "blinds": false
+      "id": "downstairs",
+      "label": "Downstairs",
+      "rooms": [
+        {
+          "id": "bedroom",
+          "label": "Bedroom",
+          "lights": true,
+          "blinds": true,
+          "blindMode": "open_close"
+        },
+        {
+          "id": "living-room",
+          "label": "Living Room",
+          "lights": true,
+          "blinds": true,
+          "blindMode": "scenes",
+          "blindOpen": "Open Living Blinds",
+          "blindClose": "Close Living Blinds"
+        },
+        {
+          "id": "kitchen",
+          "label": "Kitchen",
+          "lights": true,
+          "blinds": false
+        },
+        {
+          "id": "sitting",
+          "label": "Sitting",
+          "lights": true,
+          "blinds": true,
+          "blindMode": "open_close"
+        },
+        {
+          "id": "other-downstairs",
+          "label": "Other downstairs",
+          "lights": true,
+          "blinds": false,
+          "targetLights": "Other downstairs"
+        }
+      ]
     },
     {
-     "id": "eve-lights",
-     "label": "Eve lights",
-     "lights": true,
-     "blinds": false
+      "id": "upstairs",
+      "label": "Upstairs",
+      "rooms": [
+        {
+          "id": "bonus-room",
+          "label": "Bonus Room",
+          "lights": true,
+          "blinds": true,
+          "blindMode": "open_close"
+        },
+        {
+          "id": "office",
+          "label": "Office",
+          "lights": true,
+          "blinds": true,
+          "blindMode": "open_close",
+          "blindCloseCommand": "close Office blinds up",
+          "blindOpenCommand": "open Office blinds"
+        },
+        {
+          "id": "guest-bedroom",
+          "label": "Guest Bedroom",
+          "lights": true,
+          "blinds": false
+        }
+      ]
     },
     {
-     "id": "outside-deck",
-     "label": "Outside / Deck",
-     "lights": true,
-     "blinds": false
-    },
-    {
-     "id": "spot-lights",
-     "label": "Spot lights",
-     "lights": true,
-     "blinds": false
+      "id": "outside",
+      "label": "Outside",
+      "rooms": [
+        {
+          "id": "back-porch",
+          "label": "Back porch",
+          "lights": true,
+          "blinds": false
+        },
+        {
+          "id": "eve-lights",
+          "label": "Eve lights",
+          "lights": true,
+          "blinds": false
+        },
+        {
+          "id": "outside-deck",
+          "label": "Outside / Deck",
+          "lights": true,
+          "blinds": false
+        },
+        {
+          "id": "spot-lights",
+          "label": "Spot lights",
+          "lights": true,
+          "blinds": false
+        }
+      ]
     }
-   ]
-  }
- ]
+  ]
 }
