@@ -88,6 +88,28 @@
       "devices": "Office (closes up)"
     }
   ],
+  "ceilingFans": [
+    {
+      "id": "living-room-ceiling-fan",
+      "label": "Living Room ceiling fan",
+      "device": "Ceiling Fan Liv",
+      "fanOn": "turn on Living Room ceiling fan (Ceiling Fan Liv)",
+      "fanOff": "turn off Living Room ceiling fan (Ceiling Fan Liv)",
+      "lightDevice": "Ceiling Light Live",
+      "lightOn": "turn on Living Room ceiling light (Ceiling Light Live)",
+      "lightOff": "turn off Living Room ceiling light (Ceiling Light Live)"
+    },
+    {
+      "id": "bedroom-ceiling-fan",
+      "label": "Bedroom ceiling fan",
+      "device": "Ceiling Fan",
+      "fanOn": "turn on Bedroom ceiling fan (Ceiling Fan)",
+      "fanOff": "turn off Bedroom ceiling fan (Ceiling Fan)",
+      "lightDevice": "Ceiling Light",
+      "lightOn": "turn on Bedroom ceiling light (Ceiling Light)",
+      "lightOff": "turn off Bedroom ceiling light (Ceiling Light)"
+    }
+  ],
   "floors": [
     {
       "id": "downstairs",

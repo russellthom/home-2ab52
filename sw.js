@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever app files change so installed phones pick up the update.
-const CACHE_VERSION = 'home-dash-v2-2026-09-30-covers';
+const CACHE_VERSION = 'home-dash-v3-2026-09-30-ceiling-fans';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(

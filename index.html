@@ -40,6 +40,9 @@ h1 { font-size: 1.35rem; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
 .card h2 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; }
+.manual { display: inline-block; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
+  color: #f0d9a0; background: #2a1f0a; border: 1px solid #5a4318; border-radius: 6px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+.rowlabel { font-size: 0.72rem; color: var(--muted); margin: 8px 0 4px; }
 .card .sub { margin: -6px 0 10px; font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 button.action {
@@ -79,7 +82,7 @@ button.close { background: #7b879e; color: #fff; }
   <label for="webhookKey">Key</label>
   <input id="webhookKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste key" />
   <button class="save" id="saveBtn" type="button">Save</button>
-  <p class="hint">CEO → Home dashboard webhook routine → copy Webhook URL and key. This panel only sends lights / shades / blinds / curtains commands.</p>
+  <p class="hint">CEO → Home dashboard webhook routine → copy Webhook URL and key. This panel sends lights / shades / blinds / curtains commands, plus manual per-fan ceiling fan buttons.</p>
 </div>
 <div id="app"></div>
 <script>
@@ -196,6 +199,41 @@ function coverCard(g) {
   return card;
 }
 
+// Ceiling fans: MANUAL, one card per fan. Fan buttons act on that single fan only;
+// fans are never part of any group / room / all / scene button. Light buttons = that fan's light only.
+function fanCard(f) {
+  const card = document.createElement("div");
+  card.className = "card";
+  const h = document.createElement("h2");
+  h.textContent = f.label;
+  const tag = document.createElement("span");
+  tag.className = "manual";
+  tag.textContent = "MANUAL";
+  h.appendChild(tag);
+  card.appendChild(h);
+  const fl = document.createElement("div");
+  fl.className = "rowlabel";
+  fl.textContent = "Fan · " + f.device;
+  card.appendChild(fl);
+  const frow = document.createElement("div");
+  frow.className = "row";
+  frow.appendChild(btn("On", "on", f.fanOn, f.label + " on"));
+  frow.appendChild(btn("Off", "off", f.fanOff, f.label + " off"));
+  card.appendChild(frow);
+  if (f.lightOn && f.lightOff) {
+    const ll = document.createElement("div");
+    ll.className = "rowlabel";
+    ll.textContent = "Light · " + f.lightDevice;
+    card.appendChild(ll);
+    const lrow = document.createElement("div");
+    lrow.className = "row";
+    lrow.appendChild(btn("On", "on", f.lightOn, f.label + " light on"));
+    lrow.appendChild(btn("Off", "off", f.lightOff, f.label + " light off"));
+    card.appendChild(lrow);
+  }
+  return card;
+}
+
 async function render() {
   const data = await fetch("rooms.json", { cache: "no-store" }).then((r) => r.json());
   const app = document.getElementById("app");
@@ -234,6 +272,18 @@ async function render() {
     app.appendChild(cgrid);
   }
 
+  if (Array.isArray(data.ceilingFans) && data.ceilingFans.length) {
+    const fs = document.createElement("div");
+    fs.className = "section";
+    fs.textContent = "Ceiling fans";
+    app.appendChild(fs);
+    const fgrid = document.createElement("div");
+    fgrid.className = "grid";
+    fgrid.id = "ceiling-fans";
+    for (const f of data.ceilingFans) fgrid.appendChild(fanCard(f));
+    app.appendChild(fgrid);
+  }
+
   for (const floor of data.floors) {
     const s = document.createElement("div");
     s.className = "section";
@@ -258,7 +308,7 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=2").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=3").catch(() => {});
 }
 </script>
 </body>
