@@ -7,17 +7,17 @@
     },
     {
       "id": "upstairs-lights",
-      "label": "Upstairs",
+      "label": "Upstairs lights",
       "target": "upstairs lights"
     },
     {
       "id": "downstairs-lights",
-      "label": "Downstairs",
+      "label": "Downstairs lights",
       "target": "downstairs lights"
     },
     {
       "id": "outside-lights",
-      "label": "Outside",
+      "label": "Outside lights",
       "target": "outside lights"
     },
     {
@@ -33,59 +33,68 @@
   ],
   "covers": [
     {
-      "id": "all-covers",
-      "label": "All blinds & curtains",
-      "target": "all blinds and curtains",
-      "devices": "Every blind + curtain (Office closes up)"
-    },
-    {
       "id": "all-blinds",
       "label": "All blinds",
       "target": "all blinds",
-      "devices": "All blinds, no curtains (Office closes up)"
+      "devices": "All blinds, no curtains (Office closes up)",
+      "type": "blinds"
     },
     {
       "id": "upstairs-blinds",
       "label": "Upstairs blinds",
       "target": "upstairs blinds",
-      "devices": "Desk, Couch, Office (Office closes up)"
+      "devices": "Desk, Couch, Office (Office closes up)",
+      "type": "blinds"
     },
     {
       "id": "downstairs-blinds",
       "label": "Downstairs blinds",
       "target": "downstairs blinds",
-      "devices": "Bedroom ×4 + Living Room"
+      "devices": "Bedroom ×4 + Living Room",
+      "type": "blinds"
     },
     {
       "id": "bedroom-blinds",
       "label": "Bedroom blinds",
       "target": "bedroom blinds",
-      "devices": "Left, Right, 3, 4"
+      "devices": "Left, Right, 3, 4",
+      "type": "blinds"
     },
     {
       "id": "living-room-blinds",
       "label": "Living Room blinds",
       "target": "living room blinds",
-      "devices": "Tuya scene (3 blinds)"
+      "devices": "Tuya scene (3 blinds)",
+      "type": "blinds"
     },
     {
       "id": "sitting-room-curtains",
       "label": "Sitting Room curtains",
       "target": "sitting room curtains",
-      "devices": "Front Curtains + Curtain AA"
+      "devices": "Front Curtains + Curtain AA",
+      "type": "curtains"
     },
     {
       "id": "bonus-room-blinds",
       "label": "Bonus Room blinds",
       "target": "bonus room blinds",
-      "devices": "Desk + Couch"
+      "devices": "Desk + Couch",
+      "type": "blinds"
     },
     {
       "id": "office-blinds",
       "label": "Office blinds",
       "target": "office blinds",
       "closeCommand": "close Office blinds up",
-      "devices": "Office (closes up)"
+      "devices": "Office (closes up)",
+      "type": "blinds"
+    },
+    {
+      "id": "all-covers",
+      "label": "All blinds & curtains",
+      "target": "all blinds and curtains",
+      "devices": "Every blind + curtain (Office closes up)",
+      "type": "blinds"
     }
   ],
   "ceilingFans": [
@@ -97,7 +106,8 @@
       "fanOff": "turn off Living Room ceiling fan (Ceiling Fan Liv)",
       "lightDevice": "Ceiling Light Live",
       "lightOn": "turn on Living Room ceiling light (Ceiling Light Live)",
-      "lightOff": "turn off Living Room ceiling light (Ceiling Light Live)"
+      "lightOff": "turn off Living Room ceiling light (Ceiling Light Live)",
+      "lightLabel": "Living Room ceiling fan light"
     },
     {
       "id": "bedroom-ceiling-fan",
@@ -107,7 +117,8 @@
       "fanOff": "turn off Bedroom ceiling fan (Ceiling Fan)",
       "lightDevice": "Ceiling Light",
       "lightOn": "turn on Bedroom ceiling light (Ceiling Light)",
-      "lightOff": "turn off Bedroom ceiling light (Ceiling Light)"
+      "lightOff": "turn off Bedroom ceiling light (Ceiling Light)",
+      "lightLabel": "Bedroom ceiling fan light"
     }
   ],
   "floors": [
