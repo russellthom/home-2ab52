@@ -50,7 +50,31 @@ button.action {
   flex: 1; min-width: 64px; border: 0; border-radius: 12px; padding: 12px 8px;
   font-size: 0.9rem; font-weight: 600; color: #061018; cursor: pointer;
 }
-button.action:active { transform: scale(0.98); }
+button.action { position: relative; overflow: hidden; -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  transition: transform 90ms ease, filter 90ms ease, box-shadow 90ms ease, background-color 200ms ease; }
+button:active, button.pressed { transform: scale(0.94); filter: brightness(1.18) saturate(1.1);
+  box-shadow: inset 0 3px 10px rgba(0,0,0,0.45); }
+button.gear, #setup .save { position: relative; overflow: hidden; transition: transform 90ms ease, filter 90ms ease; }
+.ripple { position: absolute; border-radius: 50%; pointer-events: none; background: rgba(255,255,255,0.45);
+  transform: scale(0); animation: ripple 550ms ease-out forwards; }
+@keyframes ripple { to { transform: scale(1); opacity: 0; } }
+button.action .btn-label { position: relative; z-index: 1; transition: opacity 120ms; }
+button.action.busy { animation: pulse 0.9s ease-in-out infinite; }
+button.action.busy .btn-label { opacity: 0.35; }
+button.action.busy::after { content: ""; position: absolute; z-index: 2; left: 50%; top: 50%; width: 18px; height: 18px;
+  margin: -9px 0 0 -9px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.9); border-top-color: transparent;
+  animation: spin 0.7s linear infinite; }
+@keyframes pulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(0.7); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+button.action.done-ok { background: #1fb86a !important; color: #fff; }
+button.action.done-err { background: #d92d42 !important; color: #fff; animation: shake 300ms; }
+button.action.done-ok .btn-label, button.action.done-err .btn-label { opacity: 0; }
+button.action.done-ok::after, button.action.done-err::after { position: absolute; z-index: 2; inset: 0; display: flex;
+  align-items: center; justify-content: center; font-size: 1.15rem; font-weight: 800; color: #fff; }
+button.action.done-ok::after { content: "✓"; }
+button.action.done-err::after { content: "✕"; }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 button.on { background: var(--on); }
 button.off { background: var(--off); color: #fff; }
 button.open { background: var(--open); color: #fff; }
@@ -165,11 +189,12 @@ function sendViaShortcut(c, command, label) {
     "&input=text&text=" + encodeURIComponent(payload);
   setStatus((label || command) + " → Shortcut “" + c.shortcut + "”", "ok");
   window.location.href = link;
+  return true;
 }
 
 async function sendDirect(c, command, label) {
   const bad = urlProblem(c.url);
-  if (bad) { setStatus("Can't send: " + bad, "err"); return; }
+  if (bad) { setStatus("Can't send: " + bad, "err"); return false; }
   setStatus((label || command) + "…", "busy");
   const rawKey = c.key.replace(/^Bearer\s+/i, "").trim();
   let res;
@@ -185,14 +210,15 @@ async function sendDirect(c, command, label) {
     // The POST is delivered, but the server omits CORS headers so the browser hides the reply
     // (WebKit: "Load failed"). URL + key were valid, so treat as sent.
     setStatus((label || command) + " — Sent ✓ (no confirmation from server)", "ok");
-    return;
+    return true;
   }
-  if (res.ok) { setStatus((label || command) + " sent", "ok"); return; }
+  if (res.ok) { setStatus((label || command) + " sent", "ok"); return true; }
   let detail = "";
   try { const j = await res.json(); detail = j && j.message ? " — " + j.message : ""; } catch (e) {}
   if (res.status === 401 || res.status === 403) setStatus("Webhook rejected the key (HTTP " + res.status + ")" + detail + ". Re-copy the key.", "err");
   else if (res.status === 404) setStatus("Webhook URL not found (HTTP 404)" + detail + ". Re-copy the URL.", "err");
   else setStatus("Webhook error HTTP " + res.status + detail, "err");
+  return false;
 }
 
 async function send(command, label) {
@@ -200,7 +226,7 @@ async function send(command, label) {
   if (!configured(c)) {
     setupEl.classList.add("show");
     setStatus(c.mode === "direct" ? (!c.url ? "Add the webhook URL in settings (⚙) first." : "Add the webhook key in settings (⚙) first.") : "Add the Shortcut name in settings (⚙) first.", "err");
-    return;
+    return false;
   }
   if (c.mode === "shortcut") return sendViaShortcut(c, command, label);
   return sendDirect(c, command, label);
@@ -229,12 +255,61 @@ async function testConnection() {
   }
 }
 
+// ---- Press feedback (iOS-friendly: touchstart + .pressed class, plus :active) ----
+function haptic() {
+  try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) {}
+}
+function ripple(el, ev) {
+  const r = el.getBoundingClientRect();
+  const t = ev && ev.touches && ev.touches[0];
+  const x = (t ? t.clientX : ev && ev.clientX != null ? ev.clientX : r.left + r.width / 2) - r.left;
+  const y = (t ? t.clientY : ev && ev.clientY != null ? ev.clientY : r.top + r.height / 2) - r.top;
+  const size = Math.max(r.width, r.height) * 2;
+  const d = document.createElement("span");
+  d.className = "ripple";
+  d.style.width = d.style.height = size + "px";
+  d.style.left = x - size / 2 + "px";
+  d.style.top = y - size / 2 + "px";
+  el.appendChild(d);
+  setTimeout(() => d.remove(), 600);
+}
+function addPressFeedback(el) {
+  if (el.dataset.pf) return;
+  el.dataset.pf = "1";
+  const down = (ev) => {
+    el.classList.add("pressed");
+    ripple(el, ev);
+    haptic();
+  };
+  const up = () => el.classList.remove("pressed");
+  el.addEventListener("touchstart", down, { passive: true });
+  el.addEventListener("mousedown", (ev) => { if (!el._touched) down(ev); });
+  el.addEventListener("touchend", () => { el._touched = true; setTimeout(() => { el._touched = false; }, 500); up(); });
+  el.addEventListener("touchcancel", up);
+  el.addEventListener("mouseup", up);
+  el.addEventListener("mouseleave", up);
+}
+
 function btn(text, cls, command, label) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "action " + cls;
-  b.textContent = text;
-  b.addEventListener("click", () => send(command, label));
+  const t = document.createElement("span");
+  t.className = "btn-label";
+  t.textContent = text;
+  b.appendChild(t);
+  addPressFeedback(b);
+  b.addEventListener("click", async () => {
+    if (b.classList.contains("busy")) return;
+    clearTimeout(b._fbTimer);
+    b.classList.remove("done-ok", "done-err");
+    b.classList.add("busy");
+    let ok = false;
+    try { ok = await send(command, label); } catch (e) { ok = false; }
+    b.classList.remove("busy");
+    b.classList.add(ok ? "done-ok" : "done-err");
+    b._fbTimer = setTimeout(() => b.classList.remove("done-ok", "done-err"), 1500);
+  });
   return b;
 }
 
@@ -401,10 +476,11 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 });
 document.getElementById("sendMode").addEventListener("change", showModeFields);
 document.getElementById("testBtn").addEventListener("click", () => { testConnection(); });
+document.querySelectorAll("#gearBtn, #saveBtn, #testBtn").forEach((el) => addPressFeedback(el));
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=7").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=8").catch(() => {});
 }
 </script>
 </body>
