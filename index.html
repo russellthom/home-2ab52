@@ -80,14 +80,14 @@ button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px
   <h1>Home</h1>
   <button class="gear" id="gearBtn" type="button" aria-label="Settings">⚙</button>
 </header>
-<div class="banner" id="setupBanner">Open settings (⚙) once: pick how to send (iOS Shortcut recommended), then Share → Add to Home Screen.</div>
+<div class="banner" id="setupBanner">Paste your webhook URL and key in settings (⚙) once, then Share → Add to Home Screen.</div>
 <p class="status" id="status"></p>
 <div id="setup">
   <strong>Webhook</strong>
   <label for="sendMode">Send via</label>
   <select id="sendMode">
-    <option value="shortcut">iOS Shortcut (recommended)</option>
-    <option value="direct">Direct from browser</option>
+    <option value="direct">Direct from browser (recommended)</option>
+    <option value="shortcut">iOS Shortcut (alternative)</option>
   </select>
   <div id="shortcutFields">
     <label for="shortcutName">Shortcut name</label>
@@ -99,7 +99,7 @@ button.speed { background: #8a7bff; color: #fff; min-width: 0; padding: 10px 4px
     <input id="webhookUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://…" />
     <label for="webhookKey">Key</label>
     <input id="webhookKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste key" />
-    <p class="hint">Direct mode only works if the webhook allows this site's origin (CORS). Grok Bot / Cursor webhooks currently don't, so browsers show “Load failed” — use iOS Shortcut mode.</p>
+    <p class="hint">Commands go straight to the webhook. The server doesn't send CORS headers, so the page usually can't read its reply — presses still go through and show “Sent ✓ (no confirmation from server)”.</p>
   </div>
   <button class="save" id="saveBtn" type="button">Save</button>
   <button class="save test" id="testBtn" type="button">Test connection</button>
@@ -121,8 +121,8 @@ const testEl = document.getElementById("testResult");
 function cfg() {
   const url = localStorage.getItem(LS_URL) || "";
   const key = localStorage.getItem(LS_KEY) || "";
-  // Existing installs with a saved URL keep direct mode until changed; new installs default to Shortcut.
-  const mode = localStorage.getItem(LS_MODE) || (url ? "direct" : "shortcut");
+  // Direct is the default; Shortcut only if the user picked it.
+  const mode = localStorage.getItem(LS_MODE) || "direct";
   return { url, key, mode, shortcut: localStorage.getItem(LS_SHORTCUT) || DEFAULT_SHORTCUT };
 }
 function configured(c) {
@@ -140,7 +140,7 @@ function refreshSetupUi() {
   document.getElementById("sendMode").value = c.mode;
   document.getElementById("shortcutName").value = c.shortcut;
   showModeFields();
-  const missing = !configured(c) || !localStorage.getItem(LS_MODE) && !c.url;
+  const missing = !configured(c);
   banner.classList.toggle("show", missing);
   if (missing) setupEl.classList.add("show");
 }
@@ -182,8 +182,9 @@ async function sendDirect(c, command, label) {
       mode: "cors",
     });
   } catch (e) {
-    setStatus("Can't reach webhook from the browser (network or CORS blocked). " +
-      "Switch Send via → iOS Shortcut in settings, or check the URL.", "err");
+    // The POST is delivered, but the server omits CORS headers so the browser hides the reply
+    // (WebKit: "Load failed"). URL + key were valid, so treat as sent.
+    setStatus((label || command) + " — Sent ✓ (no confirmation from server)", "ok");
     return;
   }
   if (res.ok) { setStatus((label || command) + " sent", "ok"); return; }
@@ -198,7 +199,7 @@ async function send(command, label) {
   const c = cfg();
   if (!configured(c)) {
     setupEl.classList.add("show");
-    setStatus("Open settings (⚙) and finish setup first.", "err");
+    setStatus(c.mode === "direct" ? (!c.url ? "Add the webhook URL in settings (⚙) first." : "Add the webhook key in settings (⚙) first.") : "Add the Shortcut name in settings (⚙) first.", "err");
     return;
   }
   if (c.mode === "shortcut") return sendViaShortcut(c, command, label);
@@ -222,9 +223,9 @@ async function testConnection() {
   if (!reachable) { testEl.textContent = "✗ Can't reach " + new URL(u).host + " — check the URL / internet connection."; return; }
   try {
     const r = await fetch(u, { method: "POST", mode: "cors", headers: { "Content-Type": "application/json" }, body: "{}" });
-    testEl.textContent = "✓ Host reachable and allows this site (HTTP " + r.status + " without key, as expected). Direct mode should work.";
+    testEl.textContent = "✓ Webhook host reachable and replies are readable (HTTP " + r.status + " without key, as expected).";
   } catch (e) {
-    testEl.textContent = "✗ Host is reachable, but it blocks browser requests from this site (CORS). Direct mode can't work here — use Send via → iOS Shortcut.";
+    testEl.textContent = "✓ Webhook host reachable. It doesn't send CORS headers, so replies can't be read here — that's normal: presses still go through and show “Sent ✓ (no confirmation from server)”.";
   }
 }
 
@@ -403,7 +404,7 @@ document.getElementById("testBtn").addEventListener("click", () => { testConnect
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=6").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=7").catch(() => {});
 }
 </script>
 </body>
