@@ -224,7 +224,8 @@
           "blinds": true,
           "blindMode": "open_close",
           "blindCloseCommand": "close Office blinds up",
-          "blindOpenCommand": "open Office blinds"
+          "blindOpenCommand": "open Office blinds",
+          "notes": "Close defaults to close-up (glare). Sunset privacy uses closeDown via routine, not this button."
         },
         {
           "id": "guest-bedroom",
@@ -260,7 +261,8 @@
           "id": "spot-lights",
           "label": "Spot lights",
           "lights": true,
-          "blinds": false
+          "blinds": false,
+          "notes": "Stubborn Govee/Spot bulbs (e.g. Spot 2 H6013): Off from dashboard must force-cycle and verify; do not trust a single Off ack."
         }
       ]
     }
