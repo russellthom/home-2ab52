@@ -126,6 +126,11 @@ button.heat { background: #ff8a3d; color: #fff; min-width: 0; padding: 8px 4px; 
     <label for="webhookKey">Key</label>
     <input id="webhookKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste key" />
     <p class="hint">Commands go straight to the webhook. The server doesn't send CORS headers, so the page usually can't read its reply — presses still go through and show “Sent ✓ (no confirmation from server)”.</p>
+    <label for="lanBridgeUrl">Home LAN bridge (optional)</label>
+    <input id="lanBridgeUrl" type="url" autocomplete="off" spellcheck="false" placeholder="http://Rustys-Mac-mini.local:18765" />
+    <label for="lanBridgeKey">LAN bridge key</label>
+    <input id="lanBridgeKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste bridge token" />
+    <p class="hint">On home Wi‑Fi, taps try this Mac bridge first (no Grok Bot link), then the cloud webhook. Leave blank to use only the webhook.</p>
   </div>
   <button class="save" id="saveBtn" type="button">Save</button>
   <button class="save test" id="testBtn" type="button">Test connection</button>
@@ -138,7 +143,10 @@ const LS_URL = "homeDash.webhookUrl";
 const LS_KEY = "homeDash.webhookKey";
 const LS_MODE = "homeDash.sendMode";
 const LS_SHORTCUT = "homeDash.shortcutName";
+const LS_LAN_URL = "homeDash.lanBridgeUrl";
+const LS_LAN_KEY = "homeDash.lanBridgeKey";
 const DEFAULT_SHORTCUT = "Home Command";
+const DEFAULT_LAN_URL = "http://Rustys-Mac-mini.local:18765";
 const statusEl = document.getElementById("status");
 const setupEl = document.getElementById("setup");
 const banner = document.getElementById("setupBanner");
@@ -149,7 +157,9 @@ function cfg() {
   const key = localStorage.getItem(LS_KEY) || "";
   // Direct is the default; Shortcut only if the user picked it.
   const mode = localStorage.getItem(LS_MODE) || "direct";
-  return { url, key, mode, shortcut: localStorage.getItem(LS_SHORTCUT) || DEFAULT_SHORTCUT };
+  const lanUrl = localStorage.getItem(LS_LAN_URL) || "";
+  const lanKey = localStorage.getItem(LS_LAN_KEY) || "";
+  return { url, key, mode, shortcut: localStorage.getItem(LS_SHORTCUT) || DEFAULT_SHORTCUT, lanUrl, lanKey };
 }
 function configured(c) {
   return c.mode === "shortcut" ? !!c.shortcut : !!(c.url && c.key);
@@ -165,6 +175,8 @@ function refreshSetupUi() {
   document.getElementById("webhookKey").value = c.key;
   document.getElementById("sendMode").value = c.mode;
   document.getElementById("shortcutName").value = c.shortcut;
+  document.getElementById("lanBridgeUrl").value = c.lanUrl || DEFAULT_LAN_URL;
+  document.getElementById("lanBridgeKey").value = c.lanKey;
   showModeFields();
   const missing = !configured(c);
   banner.classList.toggle("show", missing);
@@ -194,23 +206,66 @@ function sendViaShortcut(c, command, label) {
   return true;
 }
 
+async function postLanCmd(url, key, command, label, timeoutMs) {
+  const rawKey = (key || "").replace(/^Bearer\s+/i, "").trim();
+  const base = url.replace(/\/$/, "");
+  const endpoint = /\/cmd$/i.test(base) ? base : base + "/cmd";
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const t = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs || 2200) : null;
+  try {
+    return await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + rawKey },
+      body: JSON.stringify({ command, label: label || command }),
+      mode: "cors",
+      signal: ctrl ? ctrl.signal : undefined,
+    });
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
+
+async function tryLanBridge(c, command, label) {
+  const lanUrl = (c.lanUrl || "").trim();
+  const lanKey = (c.lanKey || "").trim();
+  if (!lanUrl || !lanKey) return null;
+  try {
+    const u = new URL(lanUrl);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  } catch (e) { return null; }
+  try {
+    const res = await postLanCmd(lanUrl, lanKey, command, label, 2200);
+    if (res && res.ok) return true;
+    return false;
+  } catch (e) {
+    return null; // not on LAN / bridge down
+  }
+}
+
 async function sendDirect(c, command, label) {
-  const bad = urlProblem(c.url);
-  if (bad) { setStatus("Can't send: " + bad, "err"); return false; }
   setStatus((label || command) + "…", "busy");
+  const lan = await tryLanBridge(c, command, label);
+  if (lan === true) {
+    setStatus((label || command) + " — done (home bridge)", "ok");
+    return true;
+  }
+  const bad = urlProblem(c.url);
+  if (bad) {
+    setStatus(lan === false
+      ? ("Home bridge rejected the key, and cloud webhook isn't set up: " + bad)
+      : ("Can't send: " + bad), "err");
+    return false;
+  }
   const rawKey = c.key.replace(/^Bearer\s+/i, "").trim();
   let res;
   try {
     res = await fetch(c.url, {
       method: "POST",
-      // Only the documented auth header (Authorization: Bearer <key>).
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + rawKey },
       body: JSON.stringify({ command, label: label || command }),
       mode: "cors",
     });
   } catch (e) {
-    // The POST is delivered, but the server omits CORS headers so the browser hides the reply
-    // (WebKit: "Load failed"). URL + key were valid, so treat as sent.
     setStatus((label || command) + " — Sent ✓ (no confirmation from server)", "ok");
     return true;
   }
@@ -510,6 +565,8 @@ document.getElementById("saveBtn").addEventListener("click", () => {
   localStorage.setItem(LS_KEY, document.getElementById("webhookKey").value.trim());
   localStorage.setItem(LS_MODE, document.getElementById("sendMode").value);
   localStorage.setItem(LS_SHORTCUT, document.getElementById("shortcutName").value.trim() || DEFAULT_SHORTCUT);
+  localStorage.setItem(LS_LAN_URL, document.getElementById("lanBridgeUrl").value.trim());
+  localStorage.setItem(LS_LAN_KEY, document.getElementById("lanBridgeKey").value.trim());
   refreshSetupUi();
   setStatus("Saved on this device.", "ok");
 });
@@ -519,7 +576,7 @@ document.querySelectorAll("#gearBtn, #saveBtn, #testBtn").forEach((el) => addPre
 refreshSetupUi();
 render().catch((e) => setStatus("Could not load rooms: " + e, "err"));
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js?v=10").catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=11").catch(() => {});
 }
 </script>
 </body>
