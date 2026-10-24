@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" /><meta name="theme-color" content="#0b1220" />
+<title>Bot Routines</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--card:#141c2e;--card2:#1a2438;--line:#243049;--text:#e8eefc;--muted:#9aa8c3;--accent:#5b8cff;--on:#3ecf8e;--off:#ff6b7a;--warn:#f5b84a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{min-height:100dvh;padding:16px 14px 32px;max-width:1100px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+h1{font-size:1.35rem;margin:0;font-weight:700}
+a{color:var(--accent)}
+.gear,button{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:12px;font-size:.9rem;padding:8px 12px;cursor:pointer}
+.gear{width:42px;height:42px;padding:0;font-size:1.1rem}
+button.primary{background:var(--accent);border-color:var(--accent)}
+button.warn{border-color:var(--warn);color:var(--warn)}button.go{border-color:var(--on);color:var(--on)}
+button:disabled{opacity:.5}
+.status{min-height:1.2em;color:var(--muted);font-size:.85rem;margin:0 0 10px}
+.status.ok{color:var(--on)}.status.err{color:var(--off)}.status.busy{color:var(--accent)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 14px}
+.metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.metric b{display:block;font-size:1.4rem}.metric span{color:var(--muted);font-size:.8rem}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+select,input,textarea{background:var(--card2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:.95rem;width:100%;font-family:inherit}
+.filters select{width:auto}
+.section{margin:18px 0 8px;font-size:.9rem;border-bottom:1px solid var(--line);padding-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+.card h3{margin:0 0 4px;font-size:1rem}
+.meta{color:var(--muted);font-size:.82rem;margin:2px 0}
+.pill{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+.pill.Active{color:var(--on);border-color:var(--on)}.pill.Paused{color:var(--warn);border-color:var(--warn)}
+.pill.req{color:var(--accent);border-color:var(--accent)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.req-note{color:var(--accent);font-size:.8rem;margin-top:6px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:14px;z-index:9}
+.modal.show{display:flex}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;width:100%;max-width:520px}
+.sheet h2{margin:0 0 8px;font-size:1.1rem}
+.sheet label{display:block;font-size:.8rem;color:var(--muted);margin:10px 0 4px}
+.hint{color:var(--muted);font-size:.8rem}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:.75rem;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+</style></head>
+<body>
+<header><h1>Bot Routines</h1><div><a href="../">← Home</a> <button class="gear" id="gearBtn" aria-label="Settings">⚙</button></div></header>
+<p class="status" id="status"></p>
+<div class="metrics" id="metrics"></div>
+<div class="filters">
+  <select id="fBot"></select>
+  <select id="fSt"><option>All</option><option>Active</option><option>Paused</option><option>Done</option><option>Unknown</option></select>
+</div>
+<div id="lists"></div>
+<p class="hint" id="asOf"></p>
+<p class="hint">Changes go to a Grok Bot webhook, which relays them to the bot that owns the routine. "Requested" means the webhook received it, not that the bot finished the change. Statuses here are a snapshot and update when the page data is refreshed.</p>
+
+<div class="modal" id="setup"><div class="sheet">
+  <h2>Settings</h2>
+  <label for="wUrl">Routine webhook URL</label><input id="wUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://api2.cursor.sh/automations/webhook/…" />
+  <label for="wKey">Key</label><input id="wKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste key" />
+  <p class="hint">Stored only in this browser. Copy both from the Grok Bot “Routines dashboard webhook” routine panel. Not the same as the Home dashboard webhook.</p>
+  <div class="row"><button id="closeSetup">Cancel</button><button class="primary" id="saveSetup">Save</button></div>
+</div></div>
+
+<div class="modal" id="edit"><div class="sheet">
+  <h2 id="editTitle">Edit routine</h2>
+  <label for="eSched">Schedule</label><input id="eSched" />
+  <label for="ePrompt">Prompt change (leave blank to keep current prompt)</label><textarea id="ePrompt" rows="5" placeholder="Describe the new prompt or what to change…"></textarea>
+  <div class="row"><button id="closeEdit">Cancel</button><button class="primary" id="nextEdit">Review</button></div>
+</div></div>
+
+<div class="modal" id="confirm"><div class="sheet">
+  <h2>Send this request?</h2>
+  <p class="hint" id="confirmText"></p>
+  <pre id="confirmPayload"></pre>
+  <div class="row"><button id="cancelConfirm">Cancel</button><button class="primary" id="okConfirm">Send request</button></div>
+</div></div>
+
+<script>
+const LS_URL="routinesDash.webhookUrl", LS_KEY="routinesDash.webhookKey", LS_REQ="routinesDash.requested";
+const $=id=>document.getElementById(id);
+const statusEl=$("status");
+let data=[], asOf="", pending=null, editing=null;
+const requested=JSON.parse(localStorage.getItem(LS_REQ)||"{}");
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function setStatus(t,c){statusEl.textContent=t;statusEl.className="status "+(c||"")}
+function cfg(){return{url:localStorage.getItem(LS_URL)||"",key:(localStorage.getItem(LS_KEY)||"").replace(/^Bearer\s+/i,"").trim()}}
+function urlProblem(u){if(!u)return"No webhook URL saved.";try{const x=new URL(u);if(x.protocol!=="https:")return"URL must start with https://"}catch(e){return"That doesn't look like a URL."}return""}
+
+async function load(){
+  try{const r=await fetch("routines.json",{cache:"no-store"});const j=await r.json();asOf=j.asOf;
+    data=j.routines.map(a=>({bot:a[0],name:a[1],sched:a[2],trig:a[3],status:a[4],purpose:a[5],last:a[6],next:a[7]}));
+  }catch(e){setStatus("Couldn't load routines.json","err");return}
+  const bots=["All",...new Set(data.map(r=>r.bot))];
+  $("fBot").innerHTML=bots.map(b=>`<option>${b}</option>`).join("");
+  $("asOf").textContent="Data as of "+asOf+".";
+  render();
+  const c=cfg(); if(!c.url||!c.key) setStatus("Paste the routine webhook URL and key in settings (⚙) to enable buttons.","err");
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function render(){
+  const fb=$("fBot").value||"All", fs=$("fSt").value||"All";
+  const n=s=>data.filter(r=>r.status===s).length;
+  $("metrics").innerHTML=[["AI routines",data.length],["Active",n("Active")],["Paused",n("Paused")],["Bots",new Set(data.map(r=>r.bot)).size]].map(([l,v])=>`<div class="metric"><b>${v}</b><span>${l}</span></div>`).join("");
+  const rows=data.filter(r=>(fb==="All"||r.bot===fb)&&(fs==="All"||r.status===fs));
+  const groups={}; rows.forEach(r=>(groups[r.bot]=groups[r.bot]||[]).push(r));
+  $("lists").innerHTML=Object.entries(groups).map(([bot,rs])=>`<div class="section">${esc(bot)}</div><div class="list">${rs.map(card).join("")}</div>`).join("")||'<p class="hint">No routines match.</p>';
+  document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>onAction(b.dataset.act,+b.dataset.i));
+}
+function card(r){
+  const i=data.indexOf(r), id=slug(r.bot)+"/"+slug(r.name), q=requested[id];
+  const canToggle=r.status==="Active"||r.status==="Paused"||r.status==="Unknown";
+  const tog=r.status==="Paused"?`<button class="go" data-act="resume" data-i="${i}">Resume</button>`:`<button class="warn" data-act="pause" data-i="${i}">Pause</button>`;
+  return `<div class="card"><h3>${esc(r.name)}<span class="pill ${esc(r.status)}">${esc(r.status)}</span>${q?'<span class="pill req">Requested</span>':""}</h3>
+  <p class="meta">🗓 ${esc(r.sched)} · ${esc(r.trig)}</p><p class="meta">${esc(r.purpose)}</p>
+  <p class="meta">Last: ${esc(r.last)} · Next: ${esc(r.next)}</p>
+  <div class="actions">${canToggle?tog:""}${r.status!=="Done"?`<button data-act="edit" data-i="${i}">Edit</button>`:""}</div>
+  ${q?`<div class="req-note">${esc(q.action)} requested ${esc(q.at)} — waiting on ${esc(r.bot)} to apply it.</div>`:""}</div>`;
+}
+function payloadFor(r,action,extra){return Object.assign({bot_id:r.bot,routine_id:slug(r.bot)+"/"+slug(r.name),routine_name:r.name,action},extra||{})}
+function onAction(act,i){
+  const r=data[i];
+  if(act==="edit"){editing=r;$("editTitle").textContent="Edit: "+r.name;$("eSched").value=r.sched;$("ePrompt").value="";$("edit").classList.add("show");return}
+  askConfirm(r,payloadFor(r,act),`${act==="pause"?"Pause":"Resume"} “${r.name}” on ${r.bot}?`);
+}
+function askConfirm(r,p,text){pending={r,p};$("confirmText").textContent=text;$("confirmPayload").textContent=JSON.stringify(p,null,2);$("confirm").classList.add("show")}
+$("nextEdit").onclick=()=>{const r=editing,s=$("eSched").value.trim(),pr=$("ePrompt").value.trim(),x={};
+  if(s&&s!==r.sched)x.schedule=s; if(pr)x.prompt=pr;
+  if(!Object.keys(x).length){setStatus("Nothing changed.","err");return}
+  $("edit").classList.remove("show"); askConfirm(r,payloadFor(r,"update",x),`Request this change to “${r.name}” on ${r.bot}?`)};
+$("closeEdit").onclick=()=>$("edit").classList.remove("show");
+$("cancelConfirm").onclick=()=>{pending=null;$("confirm").classList.remove("show")};
+$("okConfirm").onclick=async()=>{const p=pending;$("confirm").classList.remove("show");if(p)await send(p.r,p.p)};
+
+async function send(r,p){
+  const c=cfg(),bad=urlProblem(c.url);
+  if(bad||!c.key){$("setup").classList.add("show");setStatus(bad||"Add the webhook key in settings (⚙) first.","err");return}
+  setStatus("Sending "+p.action+" for "+r.name+"…","busy");
+  let ok=false,res;
+  try{res=await fetch(c.url,{method:"POST",mode:"cors",headers:{"Content-Type":"application/json","Authorization":"Bearer "+c.key},body:JSON.stringify(p)});ok=res.ok}
+  catch(e){ok=true; /* webhook omits CORS headers: delivered but reply unreadable (same as Home dashboard) */}
+  if(!ok){setStatus(res.status===401||res.status===403?"Webhook rejected the key (HTTP "+res.status+").":"Webhook error HTTP "+res.status,"err");return}
+  requested[p.routine_id]={action:p.action,at:new Date().toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" CT"};
+  localStorage.setItem(LS_REQ,JSON.stringify(requested));
+  setStatus(p.action+" requested for “"+r.name+"”. "+r.bot+" still has to apply it.","ok"); render();
+}
+$("gearBtn").onclick=()=>{const c=cfg();$("wUrl").value=c.url;$("wKey").value=c.key;$("setup").classList.add("show")};
+$("closeSetup").onclick=()=>$("setup").classList.remove("show");
+$("saveSetup").onclick=()=>{localStorage.setItem(LS_URL,$("wUrl").value.trim());localStorage.setItem(LS_KEY,$("wKey").value.trim());$("setup").classList.remove("show");setStatus("Saved.","ok")};
+$("fBot").onchange=render;$("fSt").onchange=render;
+load();
+</script></body></html>
