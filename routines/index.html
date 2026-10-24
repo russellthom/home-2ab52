@@ -32,13 +32,13 @@ button{font-family:inherit}
 .edit{display:none;margin-top:8px}.edit.show{display:block}.edit input,.edit textarea{width:100%;margin-top:4px}
 .banner{background:#2a1f0b;border:1px solid #5a4210;color:#f5d58a;border-radius:12px;padding:10px 12px;font-size:.85rem;margin-bottom:12px;display:none}.banner.show{display:block}
 </style></head><body>
-<header><h1>Bot Routines</h1><div><a class="pill" href="../">← Home</a> <button class="gear" id="gearBtn" type="button" aria-label="Settings">⚙</button></div></header>
+<header><h1>Bot Routines</h1><div><a class="pill" id="homeLink" href="../">← Home</a> <button class="gear" id="gearBtn" type="button" aria-label="Settings">⚙</button></div></header>
 <div class="banner" id="banner">Paste the <b>Routines webhook</b> URL and key in settings (⚙) before buttons can send.</div>
 <div id="setup">
  <strong>Routines webhook</strong>
  <label for="u">URL</label><input id="u" type="url" autocomplete="off" spellcheck="false" placeholder="https://api2.cursor.sh/automations/webhook/…">
  <label for="k">Key</label><input id="k" type="password" autocomplete="off" spellcheck="false" placeholder="paste key">
- <p class="muted">This is a separate webhook from the home-lights one. Key stays in this browser only. The webhook can't send CORS headers, so the page can't read a reply: a press shows “Requested”, not “Done”. The owning bot applies the change; check its chat for the result.</p>
+ <p class="muted">This is a separate webhook from the home-lights one. Key stays in this browser only. Presses go through a small relay on the NAS (the webhook blocks direct browser calls). “Requested ✓” means the webhook accepted it — not that the change is applied. The owning bot applies the change; check its chat for the result.</p>
  <button class="act" id="saveBtn" type="button">Save</button>
 </div>
 <p class="muted" id="asOf"></p>
@@ -52,18 +52,30 @@ const cfg=()=>({url:localStorage.getItem(LS_U)||"",key:localStorage.getItem(LS_K
 function refreshBanner(){const c=cfg();$("banner").classList.toggle("show",!c.url||!c.key)}
 $("gearBtn").onclick=()=>{const c=cfg();$("u").value=c.url;$("k").value=c.key;$("setup").classList.toggle("show")};
 $("saveBtn").onclick=()=>{localStorage.setItem(LS_U,$("u").value.trim());localStorage.setItem(LS_K,$("k").value.trim());$("setup").classList.remove("show");refreshBanner()};
+const RELAY = location.hostname.endsWith("github.io") ? null : "relay";
+const LAN_PAGE = "http://192.168.1.225:8847/";
 async function send(payload,el){
   const c=cfg();
   if(!c.url||!c.key){el.className="req err";el.textContent="Not sent: add the Routines webhook URL and key in ⚙ first.";return}
-  if(!/^https:\/\//.test(c.url)){el.className="req err";el.textContent="Not sent: webhook URL must start with https://";return}
+  if(!/^https:\/\/api2\.cursor\.sh\/automations\/webhook\/[A-Za-z0-9_-]+$/.test(c.url)){el.className="req err";el.textContent="Not sent: URL must be the full https://api2.cursor.sh/automations/webhook/<id> copied from the routine.";return}
   el.className="req pending";el.textContent="Sending…";
-  const body=JSON.stringify(payload);
+  const t=new Date().toLocaleTimeString();
+  if(RELAY){
+    try{
+      const r=await fetch(RELAY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:c.url,key:c.key,payload})});
+      const j=await r.json().catch(()=>({}));
+      if(j.ok){el.textContent="Requested ✓ webhook accepted (HTTP "+j.status+") · "+t+". "+payload.bot_id_name+" applies it and reports in its chat."}
+      else{el.className="req err";el.textContent="Not delivered: "+(j.status?("webhook HTTP "+j.status+" "):"")+(j.error||("relay HTTP "+r.status))+(j.status===401||j.status===403?" — re-copy the key.":j.status===404?" — re-copy the URL.":"")}
+    }catch(e){el.className="req err";el.textContent="Not delivered: relay unreachable ("+e.message+")."}
+    return;
+  }
   try{
-    const r=await fetch(c.url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+c.key},body});
-    if(r.ok){el.textContent="Requested ✓ (webhook accepted; "+payload.bot_id_name+" will apply it — check its chat) · "+new Date().toLocaleTimeString()}
-    else{el.className="req err";el.textContent="Not accepted: HTTP "+r.status}
+    const r=await fetch(c.url,{method:"POST",mode:"cors",headers:{"Content-Type":"application/json","Authorization":"Bearer "+c.key.replace(/^Bearer\s+/i,"")},body:JSON.stringify(payload)});
+    if(r.ok)el.textContent="Requested ✓ webhook accepted · "+t;
+    else{el.className="req err";el.textContent="Not delivered: webhook HTTP "+r.status}
   }catch(e){
-    el.textContent="Requested (sent; server reply not readable from browser, so unconfirmed) · "+new Date().toLocaleTimeString()+". Not applied yet — "+payload.bot_id_name+" reports the result in its chat.";
+    el.className="req err";
+    el.innerHTML="Not delivered: the webhook blocks browser calls from this site (CORS). Use the home-network page: <a href=\""+LAN_PAGE+"\">"+LAN_PAGE+"</a> (paste URL + key in ⚙ there once).";
   }
 }
 let DATA=[];
@@ -101,5 +113,6 @@ fetch("routines.json",{cache:"no-store"}).then(r=>r.json()).then(j=>{
   $("fBot").innerHTML=["All",...new Set(DATA.map(r=>r.bot))].map(b=>`<option>${b}</option>`).join("");
   $("fBot").onchange=render;$("fSt").onchange=render;render();
 });
+if(RELAY)$("homeLink").href="http://192.168.1.225:3000/";
 refreshBanner();
 </script></body></html>
